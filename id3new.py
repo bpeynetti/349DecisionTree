@@ -13,11 +13,11 @@ class ID3Tree(object):
 
 class TreeNode(object):
 	def __init__(self):
-		self.attribute = None
+		self.attributes = None
 		self.data = None
 		self.children = None
-
-
+		self.attrNum = None
+		self.typeAttribute = None
 
 def getEntropy(instance_set):
 
@@ -50,8 +50,10 @@ def getEntropy(instance_set):
 	return entropy
 
 
+def infoGain(instances,typeAttr,attrIndex):
 
-def infoGain(instances,typeAttr,attrNum):
+	print attrIndex
+	print instances[0]
 
 	totalGain = 0.0
 	possibilities = []
@@ -62,13 +64,13 @@ def infoGain(instances,typeAttr,attrNum):
 		split_instances = {}
 		for instance in instances:
 			#if that value hasn't been recorded, add it as a possibility
-			if not(instance[attrNum] in possibilities):
-				split_instances[instance[attrNum]]=[instance]
-				possibilities.append(instance[attrNum])
+			if not(instance[attrIndex] in possibilities):
+				split_instances[instance[attrIndex]]=[instance]
+				possibilities.append(instance[attrIndex])
 			#and add whatever instance to the stuff. 
 			else:
-				split_instances[instance[attrNum]].append(instance)
-			#print attrNum
+				split_instances[instance[attrIndex]].append(instance)
+			#print attrIndex
 			#print instance
 			
 	if typeAttr==' numeric' or typeAttr=='numeric':
@@ -79,15 +81,15 @@ def infoGain(instances,typeAttr,attrNum):
 		#get the average and split down or up
 		sumInstances = float(0.0)
 		for instance in instances:
-			if instance[attrNum]=='?':
-				instance[attrNum]=0
-			sumInstances+=float(instance[attrNum])
+			if instance[attrIndex]=='?':
+				instance[attrIndex]=0
+			sumInstances+=float(instance[attrIndex])
 		average = sumInstances / float(len(instances))
 		# print average
 
 		#now i know the average
 		for instance in instances:
-			if (instance[attrNum]<=average):
+			if (instance[attrIndex]<=average):
 				split_instances['less_eq'].append(instance)
 			else:
 				split_instances['greater'].append(instance)
@@ -106,14 +108,15 @@ def infoGain(instances,typeAttr,attrNum):
 
 	return totalGain
 
-	
-
-	
 
 def ID3Recursive(tree,instancesLeft,attributes,typeAttribute,attrNum):
 
-	cur_tree = ID3Tree()
-	cur_tree = tree
+	current_node = TreeNode()
+	current_node.data=instancesLeft
+	current_node.attributes = attributes
+	current_node.attrNum = attrNum 
+	current_node.typeAttribute = typeAttribute
+	current_node.children = []
 
 	#save in a dictionary
 	typeAttributes={}
@@ -133,22 +136,78 @@ def ID3Recursive(tree,instancesLeft,attributes,typeAttribute,attrNum):
 
 	informationGain = {}
 	#print attributes
+	maxGain = float(0.0)
+	bestattr=0
 	for attr in attributes:
 		# print attr
-		informationGain[attr] = infoGain(instancesLeft,typeAttributes[attr],attrNum[attr])
+		informationGain[attr] = abs(infoGain(instancesLeft,typeAttributes[attr],attrNum[attr]))
+		if informationGain[attr] > maxGain:
+			bestattr = attr
+			maxGain = float(informationGain[attr])
 
-	for attr in attributes:
-		print 'attribute ',attr,' : ',informationGain[attr]
+	# if information gain not enough, return that node
+	if maxGain < 0.0005:
+		return current_node 
 
 
-	#now check the largest information gain and select that to partition from
+	if not bestattr:
+		return current_node
 
+	if typeAttribute[attrNum[bestattr]]==' nominal':
+		#do a split on a nominal. so on each possible attribute
+		#and each to the children of the current node
 
+		#get all possibilities of the current attribute
+		print 'split on ',bestattr
+		possibilities = []
+		split_instances = {}
+		for instance in instancesLeft:
+			#if that value hasn't been recorded, add it as a possibility
+			if not(instance[attrNum[bestattr]] in possibilities):
+				split_instances[instance[attrNum[bestattr]]]=[instance]
+				possibilities.append(instance[attrNum[bestattr]])
+			#and add whatever instance to the stuff. 
+			else:
+				split_instances[instance[attrNum[bestattr]]].append(instance)
+			#print attrNum
+			#print instance
 
+	else:
+	#attribute is numeric, so split on <= or > than. and keep track on number of splits 
+		print 'split on ',bestattr
+		split_instances = {}
+		split_instances['less_eq']=[]
+		split_instances['greater']=[]
+		#get the average and split down or up
+		sumInstances = float(0.0)
+		for instance in instancesLeft:
+			if instance[attrNum[bestattr]]=='?':
+				instance[attrNum[bestattr]]=0
+			sumInstances+=float(instance[attrNum[bestattr]])
+		average = sumInstances / float(len(instancesLeft))
+		# print average
 
-	# for attr in attributes:
-	# 	entropy[attr] = getEntropy(attributes,instancesLeft,attr)
+		#now i know the average
+		for instance in instancesLeft:
+			if (instance[attrNum[bestattr]]<=average):
+				split_instances['less_eq'].append(instance)
+			else:
+				split_instances['greater'].append(instance)
 
+		possibilities = ['less_eq','greater']
+
+	#figure out the number 
+	index = int(attrNum[bestattr])
+	typeAttribute.pop(index)
+	attrNum.pop(bestattr)
+	newAttributes = [x for x in attributes if x!=bestattr]
+	for splits in split_instances:
+		print len(splits)
+		print 'splits'
+		print splits
+		current_node.children.append(ID3Recursive(tree,splits,newAttributes,typeAttribute,attrNum))
+
+	return current_node	
 
 
 def CreateTree(instances,Attribute_dict,attributes,typeAttribute,numberAttributes,attrNum):
