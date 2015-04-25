@@ -1,5 +1,6 @@
 import sys
 import math
+from copy import deepcopy
 
 
 class ID3Tree(object):
@@ -109,10 +110,16 @@ def infoGain(instances,typeAttr,attrIndex):
 	return totalGain
 
 
-def ID3Recursive(tree,instancesLeft,attributes,typeAttribute,attrNum,recursive):
+def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recursive):
 
-	print recursive
+	#print recursive
 	recursive +=1
+	tabs = '\t'*recursive
+
+
+	attributes = deepcopy(attributes_1)
+	typeAttribute = deepcopy(typeAttribute_1)
+	attrNum = deepcopy(attrNum_1)
 
 	current_node = TreeNode()
 	current_node.data=instancesLeft
@@ -120,6 +127,11 @@ def ID3Recursive(tree,instancesLeft,attributes,typeAttribute,attrNum,recursive):
 	current_node.attrNum = attrNum 
 	current_node.typeAttribute = typeAttribute
 	current_node.children = []
+	positive = 0
+	negative = 0
+	if len(instancesLeft)<2:
+		return None
+
 
 	#now get entropy for each
 	entropy = {}
@@ -132,10 +144,10 @@ def ID3Recursive(tree,instancesLeft,attributes,typeAttribute,attrNum,recursive):
 	#print attributes
 	maxGain = float(0.0)
 	bestattr=0
-	print typeAttribute
-	for key in attrNum:
-		print key
-	print attributes
+	#print typeAttribute
+	#for key in attrNum:
+#		print key#
+#	print attributes
 	for attr in attributes:
 		# print attr
 		informationGain[attr] = abs(infoGain(instancesLeft,typeAttribute[attrNum[attr]],attrNum[attr]))
@@ -144,22 +156,33 @@ def ID3Recursive(tree,instancesLeft,attributes,typeAttribute,attrNum,recursive):
 			maxGain = float(informationGain[attr])
 
 	# if information gain not enough, return that node
-	print maxGain
-	if maxGain < 0.0000001:
-		print 'not enough information gain'
-		return current_node 
+	#print maxGain
+	# if maxGain < 0.000000001:
+	# #	print 'not enough information gain'
+	# 	return None 
 
 
 	if not bestattr:
 		return current_node
 
-	print typeAttribute
+
+	#print typeAttribute
 	if typeAttribute[attrNum[bestattr]]==' nominal':
 		#do a split on a nominal. so on each possible attribute
 		#and each to the children of the current node
 
 		#get all possibilities of the current attribute
-		print 'split on ',bestattr
+		
+		print tabs,'split on ',bestattr,
+		for instance in instancesLeft:
+			if instance[-1]=='1':
+				positive+=1
+			else:
+				negative+=1
+		if ((positive==0) or (negative==0)):
+			print ' xxxxxxxxx - PERFECT xxxxxxx \t\t\t',
+		print "   RESULT: ",positive,' positive vs ',negative,'negative and ',len(attributes)-1,' attributes left'
+		
 		possibilities = []
 		split_instances = {}
 		for instance in instancesLeft:
@@ -175,7 +198,16 @@ def ID3Recursive(tree,instancesLeft,attributes,typeAttribute,attrNum,recursive):
 
 	else:
 	#attribute is numeric, so split on <= or > than. and keep track on number of splits 
-		print 'split on ',bestattr
+		print tabs,'split on ',bestattr,
+		for instance in instancesLeft:
+			if instance[-1]=='1':
+				positive+=1
+			else:
+				negative+=1
+		if ((positive==0) or (negative==0)):
+			print ' xxxxxxxxx - PERFECT xxxxxxx \t\t\t',
+		print "   RESULT: ",positive,' positive vs ',negative,'negative and ',len(attributes)-1,' attributes left'
+		
 		split_instances = {}
 		split_instances['less_eq']=[]
 		split_instances['greater']=[]
