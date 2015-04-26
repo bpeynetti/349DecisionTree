@@ -129,7 +129,12 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 	current_node.children = []
 	positive = 0
 	negative = 0
-	if len(instancesLeft)<2:
+
+	if len(instancesLeft)==1:
+		for inst in instancesLeft:
+			if inst[-1]=='1':
+				positive+=1
+		print 'LEAF NODE: PREDICTION: ',float(positive)/float(len(instancesLeft))
 		return None
 
 
@@ -173,7 +178,7 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 
 		#get all possibilities of the current attribute
 		
-		print tabs,'split on ',bestattr,
+		#print tabs,'split on ',bestattr,
 		for instance in instancesLeft:
 			if instance[-1]=='1':
 				positive+=1
@@ -181,7 +186,7 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 				negative+=1
 		if ((positive==0) or (negative==0)):
 			print ' xxxxxxxxx - PERFECT xxxxxxx \t\t\t',
-		print "   RESULT: ",positive,' positive vs ',negative,'negative and ',len(attributes)-1,' attributes left'
+		#print "   RESULT: ",positive,' positive vs ',negative,'negative and ',len(attributes)-1,' attributes left'
 		
 		possibilities = []
 		split_instances = {}
@@ -198,7 +203,7 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 
 	else:
 	#attribute is numeric, so split on <= or > than. and keep track on number of splits 
-		print tabs,'split on ',bestattr,
+		#print tabs,'split on ',bestattr,
 		for instance in instancesLeft:
 			if instance[-1]=='1':
 				positive+=1
@@ -206,7 +211,7 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 				negative+=1
 		if ((positive==0) or (negative==0)):
 			print ' xxxxxxxxx - PERFECT xxxxxxx \t\t\t',
-		print "   RESULT: ",positive,' positive vs ',negative,'negative and ',len(attributes)-1,' attributes left'
+		#print "   RESULT: ",positive,' positive vs ',negative,'negative and ',len(attributes)-1,' attributes left'
 		
 		split_instances = {}
 		split_instances['less_eq']=[]
@@ -242,7 +247,21 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 		#print len(split_instances[key])
 		#print 'splits'
 		#print split_instances[key]
-		current_node.children.append(ID3Recursive(tree,split_instances[key],newAttributes,typeAttribute,attrNum,recursive))
+		pos=0.0
+		for instance in split_instances[key]:
+			instance.pop(index)
+			if instance[-1]=='1':
+				pos+=1
+		prediction = float(pos)/float(len(split_instances[key]))
+		print tabs,'splitting on ',bestattr,' on value ',key, 'with ',len(split_instances[key]), 'instances '
+
+
+		#print split_instances[key][0]
+		##for k in attrNum:
+	#		print k,' : ',attrNum[k],' , '
+#		print ''	
+		newNode = ID3Recursive(tree,split_instances[key],newAttributes,typeAttribute,attrNum,recursive)
+		current_node.children.append(newNode)
 
 	return current_node	
 
