@@ -1,6 +1,7 @@
 import sys
 import math
 from copy import deepcopy
+import  matplotlib.pyplot as plt
 
 
 class ID3Tree(object):
@@ -11,6 +12,7 @@ class ID3Tree(object):
 		self.attrType = None
 		self.root = None
 		self.attributeNumbers = 0
+		self.attrNum = None
 
 class TreeNode(object):
 	def __init__(self):
@@ -24,6 +26,16 @@ class TreeNode(object):
 		self.probability = 0;
 		self.splitAttribute = None;
 		self.splitValue = None;
+		self.nodes =[]
+		self.leafNodes = []
+		self.precision = 0.0
+
+attempts= int(sys.argv[3])
+trainFile = sys.argv[1]
+testfile = sys.argv[2]
+INSTANCE_LIMIT = attempts
+
+
 
 
 def getEntropy(instance_set):
@@ -142,16 +154,19 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 	positive = 0
 	negative = 0
 
-	if len(instancesLeft)<=11:
-		current_node.leafOrNot = 1
-		for inst in instancesLeft:
-			if inst[-1]=='1':
-				positive+=1
+	for inst in instancesLeft:
+		if inst[-1]=='1':
+			positive+=1
 		#print 'LEAF NODE: PREDICTION: ',float(positive)/float(len(instancesLeft))
-		current_node.prediction = round(float(positive) / float(len(instancesLeft)))
-		current_node.probability = float(positive)/float(len(instances))
-		if current_node.prediction == 0:
-			current_node.probability = float(1) - float(current_node.probability)
+	current_node.prediction = round(float(positive) / float(len(instancesLeft)))
+	current_node.probability = float(positive)/float(len(instancesLeft))
+	if current_node.prediction == 0:
+		current_node.probability = float(1) - float(current_node.probability)
+
+	if (len(instancesLeft)<=INSTANCE_LIMIT) or (len(attrNum)<=1) :
+		current_node.leafOrNot = 1
+		tree.leafNodes.append(current_node)
+		tree.nodes.append(current_node)
 		return current_node
 
 	positive=0
@@ -186,6 +201,7 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 
 
 	if not bestattr:
+		tree.nodes.append(current_node)
 		return current_node
 
 
@@ -286,6 +302,7 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 	current_node.splitAttribute = bestattr
 
 
+	tree.nodes.append(current_node)
 	return current_node	
 
 
@@ -296,13 +313,17 @@ def CreateTree(instances,Attribute_dict,attributes,typeAttribute,numberAttribute
 	tree.attr_dict = Attribute_dict
 	tree.attributeList = attributes 
 	tree.attrType = typeAttribute
+	tree.attrNum = attrNum
 	tree.attributeNumbers = numberAttributes
+	tree.nodes=[]
+	tree.leafNodes = []
 
 	rootNode = TreeNode()
 	rootNode = ID3Recursive(tree,instances,attributes,typeAttribute,attrNum,0,None,None)
 
 	tree.root = rootNode
 
+	#print 'Created tree has ',len(tree.nodes),' nodes and ',len(tree.leafNodes),' leaf nodes'
 	return tree
 
 
@@ -310,13 +331,13 @@ def testInstance(testCase , Node ,attrDict,attrTypes):
 
 
 	if Node.leafOrNot==1:
-		print 'leaf node  with test',testCase[-1],' and prediction ',Node.prediction
+		#print 'leaf node  with test',testCase[-1],' and prediction ',Node.prediction
 		if not testCase[-1]=='?':
 			if int(testCase[-1])==int(Node.prediction):
-				print 'correct!'
+			#	print 'correct!'
 				return 1
 			else:
-				print 'incorrect!'
+			#	print 'incorrect!'
 				return 0
 		else:
 			return 0
@@ -324,16 +345,16 @@ def testInstance(testCase , Node ,attrDict,attrTypes):
 
 	splitIndex = attrDict[Node.splitAttribute]
 
-	print 'splitting down to ',Node.splitAttribute,' seeking value ',testCase[splitIndex]
+	#print 'splitting down to ',Node.splitAttribute,' seeking value ',testCase[splitIndex]
 	#otherwise, try to do the split by finding the correct child to split to 
 	if attrTypes[splitIndex]==' nominal':
 	#note that for numeric and nominal it's different
 		for child in Node.children:
-			print child.splitValue,' vs ',testCase[splitIndex]
+	#		print child.splitValue,' vs ',testCase[splitIndex]
 			if child.splitValue == testCase[splitIndex]:
 				return testInstance(testCase,child,attrDict,attrTypes)
 	else:
-		print Node.children[0].splitValue,' vs ',testCase[splitIndex]
+	#	print Node.children[0].splitValue,' vs ',testCase[splitIndex]
 		if testCase[splitIndex]=='?':
 			return 0
 		if Node.children[0].splitValue <= testCase[splitIndex]:
@@ -354,116 +375,149 @@ def testTree(testInstances,ID3Tree):
 	#if correct, add to total
 	#if incorrect, do not add
 	correct = 0
-	testInstances = testInstances[1:]
+	testInstances = testInstances[0:]
 	for testCase in testInstances:
-		print '---'
-		correct += testInstance(testCase,ID3Tree.root,attrNum,ID3Tree.attrType)
+	#	print '---'
+		correct += testInstance(testCase,ID3Tree.root,ID3Tree.attrNum,ID3Tree.attrType)
 
 	accuracy = float(correct) / float(len(testInstances))
 
 	print "Percentage accuracy: ",accuracy
+	ID3Tree.precision = accuracy
+	return ID3Tree
 
 
+def ID3Stuff(trainFile,testFile):
 
-#read attributes
-# if not(sys.argv==5):
-# 	print "Please input 5 arguments (script, trainFile, testFile, validationFile, verbose)"
-# else:
-fileName = sys.argv[1]
-file = open(fileName,'r')
-lines_array = []
-print "Reading file..."
-for line in file:
-	lines_array.append((line.strip()).split(','))
+	#read attributes
+	# if not(sys.argv==5):
+	# 	print "Please input 5 arguments (script, trainFile, testFile, validationFile, verbose)"
+	# else:
+	fileName = sys.argv[1]
+	file = open(fileName,'r')
+	lines_array = []
+	print "Reading file..."
+	for line in file:
+		lines_array.append((line.strip()).split(','))
 
-#first line has the attribute names
-attributes = lines_array[0]
-attributes = attributes[0:-1]
-attrNum = {}
+	#first line has the attribute names
+	attributes = lines_array[0]
+	attributes = attributes[0:-1]
+	attrNum = {}
 
-#keep a record of in what position everything is
-k=0
-for attr in attributes:
-	attrNum[attr]=k
-	k+=1
+	#keep a record of in what position everything is
+	k=0
+	for attr in attributes:
+		attrNum[attr]=k
+		k+=1
 
-numberAttributes = len(attributes)-1
-#second line has the type of attribute 
-typeAttribute = lines_array[1]
+	numberAttributes = len(attributes)-1
+	#second line has the type of attribute 
+	typeAttribute = lines_array[1]
 
-#now capture examples for all attributes
-instances = lines_array[2:] 
-print "Number of instances: ",len(instances)
-print "Number of attributes: ",len(instances[1])
+	#now capture examples for all attributes
+	instances = lines_array[2:] 
+	print "Number of instances: ",len(instances)
+	print "Number of attributes: ",len(instances[1])
 
-print "Fixing to numbers if needed..."
+	print "Fixing to numbers if needed..."
 
-for instance in instances:
-	i=0
-	for attr in instance:
-		if typeAttribute[i]==' numeric':
-			if attr=="?":
-				attr=-1
-			attr = float(attr)
-		if typeAttribute[i]==' nominal':
-			if attr=='?':
-				attr=0
-		i+=1
-
-Attribute_dict = {}
-m=0
-for A in attributes :
-	data = []
 	for instance in instances:
-		data.append(instance[m])
-	Attribute_dict[A] = data
-	print A ,':   \t', len(Attribute_dict[A])
-	m+=1
+		i=0
+		for attr in instance:
+			if typeAttribute[i]==' numeric':
+				if attr=="?":
+					attr=-1
+				attr = float(attr)
+			if typeAttribute[i]==' nominal':
+				if attr=='?':
+					attr=0
+			i+=1
 
-print "Done fixing, now create trees..."
-file.close()
+	Attribute_dict = {}
+	m=0
+	for A in attributes :
+		data = []
+		for instance in instances:
+			data.append(instance[m])
+		Attribute_dict[A] = data
+		print A ,':   \t', len(Attribute_dict[A])
+		m+=1
 
-tree = CreateTree(instances,Attribute_dict,attributes,typeAttribute,numberAttributes,attrNum)
+	print "Done fixing, now create trees..."
+	file.close()
 
-print " CREATED TREE - TESTING..."
+	tree = CreateTree(instances,Attribute_dict,attributes,typeAttribute,numberAttributes,attrNum)
 
-testFileName = sys.argv[2]
-file = open(testFileName,'r')
-lines_array = []
-print "Reading file..."
-for line in file:
-	lines_array.append((line.strip()).split(','))
+	print " CREATED TREE - TESTING..."
 
-#first line has the attribute names
-attributes = lines_array[0]
-attributes = attributes[0:-1]
-attrNum = {}
-instances = lines_array[2:] 
+	testFileName = sys.argv[2]
+	file = open(testFileName,'r')
+	lines_array = []
+	print "Reading file..."
+	for line in file:
+		lines_array.append((line.strip()).split(','))
 
-#keep a record of in what position everything is
-k=0
-for attr in attributes:
-	attrNum[attr]=k
-	k+=1
+	#first line has the attribute names
+	attributes = lines_array[0]
+	attributes = attributes[0:-1]
+	attrNum = {}
+	instances = lines_array[2:] 
 
-numberAttributes = len(attributes)-1
-#second line has the type of attribute 
-typeAttribute = lines_array[1]
+	#keep a record of in what position everything is
+	k=0
+	for attr in attributes:
+		attrNum[attr]=k
+		k+=1
 
-for instance in instances:
-	i=0
-	for attr in instance:
-		if typeAttribute[i]==' numeric':
-			if attr=="?":
-				attr=-1
-			attr = float(attr)
-		if typeAttribute[i]==' nominal':
-			if attr=='?':
-				attr=0
-		i+=1
+	numberAttributes = len(attributes)-1
+	#second line has the type of attribute 
+	typeAttribute = lines_array[1]
 
-print "Done loading data, now testing the testing set ..."
-file.close()
+	for instance in instances:
+		i=0
+		for attr in instance:
+			if typeAttribute[i]==' numeric':
+				if attr=="?":
+					attr=-1
+				attr = float(attr)
+			if typeAttribute[i]==' nominal':
+				if attr=='?':
+					attr=0
+			i+=1
 
-testTree(instances,tree)
+	print "Done loading data, now testing the testing set ..."
+	file.close()
 
+	return testTree(instances,tree)
+
+precision = []
+treeSize = []
+leafSize = []
+percentageLeaves = []
+xAxis = range(200,int(sys.argv[3]),100)
+for i in xAxis:
+	INSTANCE_LIMIT = i
+	temp_tree = ID3Stuff(trainFile,testfile)
+	precision.append(temp_tree.precision)
+	treeSize.append(len(temp_tree.nodes))
+	leafSize.append(len(temp_tree.leafNodes))
+	percentageLeaves.append(float(len(temp_tree.leafNodes))/float(len(temp_tree.nodes)))
+
+plt.figure(1)
+plt.subplot(311)
+plt.plot(xAxis,precision)
+plt.ylabel('Precision')
+plt.grid(True)
+
+plt.subplot(312)
+plt.plot(xAxis,treeSize,xAxis,leafSize)
+plt.ylabel('Tree Size')
+plt.grid(True)
+
+plt.subplot(313)
+plt.plot(xAxis,percentageLeaves)
+plt.ylabel('Percentage leaves of the tree')
+plt.grid(True)
+
+plt.show()
