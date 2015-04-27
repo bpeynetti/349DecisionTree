@@ -1,4 +1,5 @@
 winpercent, oppwinpercent, weather, temperature, numinjured, oppnuminjured, startingpitcher, oppstartingpitcher, dayssincegame, oppdayssincegame, homeaway, rundifferential, opprundifferential, winner
+numeric, numeric, nominal, numeric, numeric, numeric, nominal, nominal, numeric, numeric, nominal, numeric, numeric, nominal
 ?,0.835040590931,0,61.9285891321,0.0,0.0,1,4,4.0,3.0,0,46.0,47.0,?
 0.631525163523,0.695949481058,0,57.7814365153,2.0,2.0,1,4,3.0,3.0,1,87.0,38.0,?
 0.463093761491,0.758485854627,-1,?,2.0,2.0,1,?,3.0,2.0,0,39.0,55.0,?
