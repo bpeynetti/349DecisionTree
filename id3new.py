@@ -38,7 +38,7 @@ INSTANCE_LIMIT = attempts
 
 
 
-def getEntropy(instance_set):
+def getEntropy(instance_set,verbose):
 
 	#if continuous, need to split on something
 
@@ -46,33 +46,38 @@ def getEntropy(instance_set):
 
 	#alternatives are just 1/0 for output
 	#so just do -p_1log(p_1) - p_2log(p_2)
-
+	if verbose:
+		print '\t Entropy calculation: '
 	positive=0.0
 	negative=0.0
 	for instance in instance_set:
-		#print instance[-1]
+		if verbose:
+			print '\t',instance[-1]
 		if (instance[-1])=='1':
 			positive+=1
 		else:
 			if(instance[-1])=='0':
 				negative+=1
-	#print positive
-	#print negative
+	if verbose:
+		print '\t pos: ',positive
+		print '\t neg: ',negative
 	if positive==0 or negative==0:
 		return 0
 	ppos = float(positive)/len(instance_set)
 	pneg = float(negative)/len(instance_set)
 
 	entropy = -1*ppos*float(math.log(ppos,2)) - pneg*float(math.log(pneg,2))
-	#print "Entropy is ",entropy
+	
+	if verbose:
+		print "\t Entropy is ",entropy
 
 	return entropy
 
 
-def infoGain(instances,typeAttr,attrIndex):
+def infoGain(instances,typeAttr,attrIndex,verbose):
 
-	#	print attrIndex
-	#	print instances[0]
+	if verbose:
+		print attrIndex
 
 	totalGain = 0.0
 	possibilities = []
@@ -89,8 +94,7 @@ def infoGain(instances,typeAttr,attrIndex):
 			#and add whatever instance to the stuff. 
 			else:
 				split_instances[instance[attrIndex]].append(instance)
-			#print attrIndex
-			#print instance
+
 			
 	if typeAttr==' numeric' or typeAttr=='numeric':
 		#can do <= or >
@@ -104,11 +108,12 @@ def infoGain(instances,typeAttr,attrIndex):
 				instance[attrIndex]=0
 			sumInstances+=float(instance[attrIndex])
 		average = sumInstances / float(len(instances))
-		# print average
+		if verbose:
+			print 'average: ',average
 
 		#now i know the average
 		for instance in instances:
-			if (instance[attrIndex]<=average):
+			if (float(instance[attrIndex])<=average):
 				split_instances['less_eq'].append(instance)
 			else:
 				split_instances['greater'].append(instance)
@@ -117,14 +122,17 @@ def infoGain(instances,typeAttr,attrIndex):
 
 	entropies = {}
 	for p in possibilities:
-			entropies[p]=float(getEntropy(split_instances[p]))
+			entropies[p]=float(getEntropy(split_instances[p],verbose))
 			numInstances = len(split_instances[p])
 			weight = float(numInstances)/float(len(instances))
 			totalGain = totalGain + float(entropies[p])*float(weight)
-			# print numInstances,weight
+			if verbose:
+				print p,numInstances,weight,entropies[p]
 
-	totalGain = totalGain - float(getEntropy(instances))
+	totalGain = totalGain - float(getEntropy(instances,verbose))
 
+	if verbose:
+		print 'entropy before: ',float(getEntropy(instances,verbose))
 	return totalGain
 
 
@@ -160,23 +168,32 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 		#print 'LEAF NODE: PREDICTION: ',float(positive)/float(len(instancesLeft))
 	current_node.prediction = round(float(positive) / float(len(instancesLeft)))
 	current_node.probability = float(positive)/float(len(instancesLeft))
+	if current_node.probability >= 0.5:
+		current_node.prediction = 1
+	else:
+		current_node.prediction = 0
 	if current_node.prediction == 0:
 		current_node.probability = float(1) - float(current_node.probability)
+
+
+	if current_node.probability>=0.9:
+		current_node.leafOrNot = 1
+		tree.leafNodes.append(current_node)
+		tree.nodes.append(current_node)
+	#	print tabs,'leaf node, prediction: ',current_node.prediction
+		return current_node
+
 
 	if (len(instancesLeft)<=INSTANCE_LIMIT) or (len(attrNum)<=1) :
 		current_node.leafOrNot = 1
 		tree.leafNodes.append(current_node)
 		tree.nodes.append(current_node)
+	#	print tabs,"leaf node, prediction: ",current_node.prediction
 		return current_node
 
 	positive=0
 	negative=0
-	#now get entropy for each
-	entropy = {}
-	entropy_now = 0.0
-	#print 'hi there, im recursive '
-	entropy_now = float(getEntropy(instancesLeft))
-	#print entropy_now
+
 
 	informationGain = {}
 	#print attributes
@@ -186,9 +203,11 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 	#for key in attrNum:
 	#		print key#
 	#	print attributes
+
+
 	for attr in attributes:
 		# print attr
-		informationGain[attr] = abs(infoGain(instancesLeft,typeAttribute[attrNum[attr]],attrNum[attr]))
+		informationGain[attr] = abs(infoGain(instancesLeft,typeAttribute[attrNum[attr]],attrNum[attr],0))
 		if informationGain[attr] > maxGain:
 			bestattr = attr
 			maxGain = float(informationGain[attr])
@@ -201,7 +220,17 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 
 
 	if not bestattr:
+		print 'ERROR - BUG DETECTED !'
+		print attributes
+		for instance in instancesLeft:
+			print instance
+
+		for attr in attributes:
+			print attr
+			informationGain[attr] = abs(infoGain(instancesLeft,typeAttribute[attrNum[attr]],attrNum[attr],1))
+			print informationGain[attr]
 		tree.nodes.append(current_node)
+		print 'CANNOT FIND A BEST ATTRIBUTE'
 		return current_node
 
 
@@ -264,7 +293,7 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 
 		#now i know the average
 		for instance in instancesLeft:
-			if (instance[attrNum[bestattr]]<=average):
+			if (float(instance[attrNum[bestattr]])<=average):
 				split_instances['less_eq'].append(instance)
 			else:
 				split_instances['greater'].append(instance)
@@ -327,11 +356,12 @@ def CreateTree(instances,Attribute_dict,attributes,typeAttribute,numberAttribute
 	return tree
 
 
-def testInstance(testCase , Node ,attrDict,attrTypes):
+def testInstance(testCase , Node ,attrDict,attrTypes,verbose):
 
 
 	if Node.leafOrNot==1:
-		#print 'leaf node  with test',testCase[-1],' and prediction ',Node.prediction
+		if verbose:
+			print 'leaf node  with test',testCase[-1],' and prediction ',Node.prediction
 		if not testCase[-1]=='?':
 			if int(testCase[-1])==int(Node.prediction):
 			#	print 'correct!'
@@ -344,23 +374,30 @@ def testInstance(testCase , Node ,attrDict,attrTypes):
 
 
 	splitIndex = attrDict[Node.splitAttribute]
-
-	#print 'splitting down to ',Node.splitAttribute,' seeking value ',testCase[splitIndex]
+	
+	if verbose:
+		print 'splitting down to ',Node.splitAttribute,' seeking value ',testCase[splitIndex]
 	#otherwise, try to do the split by finding the correct child to split to 
 	if attrTypes[splitIndex]==' nominal':
 	#note that for numeric and nominal it's different
 		for child in Node.children:
-	#		print child.splitValue,' vs ',testCase[splitIndex]
+			if verbose:
+				print child.splitValue,' vs ',testCase[splitIndex]
 			if child.splitValue == testCase[splitIndex]:
-				return testInstance(testCase,child,attrDict,attrTypes)
+				return testInstance(testCase,child,attrDict,attrTypes,verbose)
 	else:
-	#	print Node.children[0].splitValue,' vs ',testCase[splitIndex]
+		if verbose:
+			print Node.children[0].splitValue,' vs ',testCase[splitIndex]
 		if testCase[splitIndex]=='?':
 			return 0
-		if Node.children[0].splitValue <= testCase[splitIndex]:
-			return testInstance(testCase, Node.children[0],attrDict,attrTypes)
+		if Node.children[0].splitValue > float(testCase[splitIndex]):
+			if verbose:
+				print 'select less than or equal'
+			return testInstance(testCase, Node.children[0],attrDict,attrTypes,verbose)
 		else:
-			return testInstance(testCase, Node.children[1],attrDict,attrTypes)
+			if verbose:
+				print 'select greater than '
+			return testInstance(testCase, Node.children[1],attrDict,attrTypes,verbose)
 
 		#it's numeric. so work in less than/greater than
 
@@ -375,15 +412,23 @@ def testTree(testInstances,ID3Tree):
 	#if correct, add to total
 	#if incorrect, do not add
 	correct = 0
-	testInstances = testInstances[0:]
+	testInstances = testInstances[1:]
 	for testCase in testInstances:
-	#	print '---'
-		correct += testInstance(testCase,ID3Tree.root,ID3Tree.attrNum,ID3Tree.attrType)
+		#print '-----'
+		correct += testInstance(testCase,ID3Tree.root,ID3Tree.attrNum,ID3Tree.attrType,0)
 
 	accuracy = float(correct) / float(len(testInstances))
 
 	print "Percentage accuracy: ",accuracy
 	ID3Tree.precision = accuracy
+
+	totalPositive=0
+	for n in ID3Tree.leafNodes:
+		totalPositive += n.prediction
+
+	print 'in total ',totalPositive,' positive leaf nodes out of ',len(ID3Tree.leafNodes),
+	print float(totalPositive)/len(ID3Tree.leafNodes)
+
 	return ID3Tree
 
 
@@ -423,16 +468,15 @@ def ID3Stuff(trainFile,testFile):
 	print "Fixing to numbers if needed..."
 
 	for instance in instances:
-		i=0
-		for attr in instance:
-			if typeAttribute[i]==' numeric':
-				if attr=="?":
-					attr=-1
-				attr = float(attr)
-			if typeAttribute[i]==' nominal':
-				if attr=='?':
-					attr=0
-			i+=1
+		if instance[-1]=='?':
+			flag=0
+			for i in instances:
+				if (instance[:-1]==i[:-1]) and (i[-1] != '?'):
+					instance[-1]=i[-1]
+					flag=1
+				break
+			if flag==0:
+				instance[-1]='0'
 
 	Attribute_dict = {}
 	m=0
@@ -474,6 +518,7 @@ def ID3Stuff(trainFile,testFile):
 	#second line has the type of attribute 
 	typeAttribute = lines_array[1]
 
+	positive = 0.0
 	for instance in instances:
 		i=0
 		for attr in instance:
@@ -485,39 +530,45 @@ def ID3Stuff(trainFile,testFile):
 				if attr=='?':
 					attr=0
 			i+=1
+		if instance[-1]=='1':
+			positive+=1
 
+
+	print 'percentage of 1: ',float(positive)/float(len(instances))
 	print "Done loading data, now testing the testing set ..."
 	file.close()
 
 	return testTree(instances,tree)
 
-precision = []
-treeSize = []
-leafSize = []
-percentageLeaves = []
-xAxis = range(200,int(sys.argv[3]),100)
-for i in xAxis:
-	INSTANCE_LIMIT = i
-	temp_tree = ID3Stuff(trainFile,testfile)
-	precision.append(temp_tree.precision)
-	treeSize.append(len(temp_tree.nodes))
-	leafSize.append(len(temp_tree.leafNodes))
-	percentageLeaves.append(float(len(temp_tree.leafNodes))/float(len(temp_tree.nodes)))
+# precision = []
+# treeSize = []
+# leafSize = []
+# percentageLeaves = []
+# xAxis = range(10000,int(sys.argv[3]),500)
+# for i in xAxis:
+# 	INSTANCE_LIMIT = i
+# 	temp_tree = ID3Stuff(trainFile,testfile)
+# 	precision.append(temp_tree.precision)
+# 	treeSize.append(len(temp_tree.nodes))
+# 	leafSize.append(len(temp_tree.leafNodes))
+# 	percentageLeaves.append(float(len(temp_tree.leafNodes))/float(len(temp_tree.nodes)))
 
-plt.figure(1)
-plt.subplot(311)
-plt.plot(xAxis,precision)
-plt.ylabel('Precision')
-plt.grid(True)
+# plt.figure(1)
+# plt.subplot(311)
+# plt.plot(xAxis,precision)
+# plt.ylabel('Precision')
+# plt.grid(True)
 
-plt.subplot(312)
-plt.plot(xAxis,treeSize,xAxis,leafSize)
-plt.ylabel('Tree Size')
-plt.grid(True)
+# plt.subplot(312)
+# plt.plot(xAxis,treeSize,xAxis,leafSize)
+# plt.ylabel('Tree Size')
+# plt.grid(True)
 
-plt.subplot(313)
-plt.plot(xAxis,percentageLeaves)
-plt.ylabel('Percentage leaves of the tree')
-plt.grid(True)
+# plt.subplot(313)
+# plt.plot(xAxis,percentageLeaves)
+# plt.ylabel('Percentage leaves of the tree')
+# plt.grid(True)
 
-plt.show()
+# plt.show()
+
+ID3Stuff(trainFile,testfile)
