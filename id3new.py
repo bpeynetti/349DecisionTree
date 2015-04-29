@@ -629,5 +629,29 @@ def setLeaf(someNode, leaves):
         
     return 
     
+def PrintTree(tree):
+	root = tree.root
+	printRecursive(root,0)
+	
+def printRecursive(node,recursionLevel):
+	
+	recursionLevel = recursionLevel+1
+	tabs = '\t'*recursionLevel
+	if node.leafOrNot==1:
+		print tabs,'LEAF NODE: Prediction: ',node.prediction
+		return
+	
+	else:
+		if node.parent==None:
+			print 'Root Node, attribute: ',node.splitAttribute
+		else:
+			print tabs,'value: ',node.splitValue,' - attribute: ',node.splitAttribute
 
-ID3Stuff(trainFile,testfile)
+	for kid in node.children:
+		printRecursive(kid,recursionLevel)
+		
+	return
+
+tree = ID3Stuff(trainFile,testfile)
+
+PrintTree(tree)
