@@ -425,7 +425,6 @@ def testTree(testInstances,ID3Tree):
 	for n in ID3Tree.leafNodes:
 		totalPositive += n.prediction
 
-	print 'leaf nodes: ',len(ID3Tree.leafNodes),' out of ',len(ID3Tree.nodes),'nodes'
 	# print float(totalPositive)/len(ID3Tree.leafNodes)
 
 	return ID3Tree
@@ -540,7 +539,7 @@ def ID3Stuff(trainFile,testFile):
 	newTree = testTree(instances,tree)
 	continuePrune = 1
 	while continuePrune == 1:
-		continuePrune = prune(instances, newTree)
+		[continuePrune,newTree] = prune(instances,newTree)
 	return newTree
 
 # precision = []
@@ -576,34 +575,37 @@ def ID3Stuff(trainFile,testFile):
 
 def prune(testInstances,tree):
 
+	print 'initial precision: ',tree.precision,'with ',len(tree.leafNodes),' leaf nodes out of ',len(tree.nodes)
 
-    bestPrecision = deepcopy(tree.precision)
-    treeCopy= deepcopy(tree)
-    bestTree = deepcopy(tree)
-    improvedFlag=0
+	bestPrecision = deepcopy(tree.precision)
+	treeCopy= deepcopy(tree)
+	bestTree = deepcopy(tree)
+	improvedFlag=0
     
     
-    for leafNode in tree.leafNodes:
-        #if the parent is not a leaf
-        if leafNode.parent not in treeCopy.leafNodes:
-            #perform a new test with that one set as a leaf
-            testNode = leafNode.parent
-            testNode.leafOrNot = 1
-            treeCopy = testTree(testInstances, treeCopy)
-            if treeCopy.precision < bestPrecision:
-                #then reset that node to 0
-                testNode.leafOrNot = 0
-            else:
-                #set recursively that node and all nodes to leaf nodes
-                setLeaf(testNode, treeCopy.leafNodes)
-                bestTree = deepcopy(treeCopy)
-                treeCopy= deepcopy(tree)
-                bestPrecision= treeCopy.precision
-                improvedFlag = 1
-         
-    tree = bestTree
-    print 'improvedFlag = ',improvedFlag,' down to ',precisionCopy
-    return improvedFlag
+	for leafNode in tree.leafNodes:
+	    #if the parent is not a leaf
+	    if leafNode.parent not in tree.leafNodes:
+	        #perform a new test with that one set as a leaf
+	        testNode = leafNode.parent
+	        testNode.leafOrNot = 1
+	        treeCopy = testTree(testInstances, tree)
+	        if treeCopy.precision < bestPrecision:
+	            #then reset that node to 0
+	            testNode.leafOrNot = 0
+	        else:
+	            #set recursively that node and all nodes to leaf nodes
+	            setLeaf(testNode, tree.leafNodes)
+	            bestTree = deepcopy(treeCopy)
+	            treeCopy= deepcopy(tree)
+	            bestPrecision= treeCopy.precision
+	            improvedFlag = 1
+	     
+	tree = bestTree
+	print 'improvedFlag = ',improvedFlag,' down to ',bestPrecision,' (',tree.precision,')'
+	print 'leaf nodes: ',len(tree.leafNodes),' out of ',len(tree.nodes),'nodes'
+
+	return [improvedFlag,tree]
 
 def setLeaf(someNode, leaves):
 
