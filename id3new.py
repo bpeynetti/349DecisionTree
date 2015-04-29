@@ -580,7 +580,7 @@ def prune(testInstances,tree):
 	print 'initial precision: ',tree.precision,'with ',len(tree.leafNodes),' leaf nodes out of ',len(tree.nodes)
 
 	bestPrecision = deepcopy(tree.precision)
-	treeCopy= deepcopy(tree)
+	treeCopy= (tree)
 	improvedFlag=0
     
 	unsearchedCount=0
