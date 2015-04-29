@@ -540,6 +540,7 @@ def ID3Stuff(trainFile,testFile):
 	continuePrune = 1
 	while continuePrune == 1:
 		[continuePrune,newTree] = prune(instances,newTree)
+		print 'Current precision after prune: ' ,newTree.precision
 	return newTree
 
 # precision = []
@@ -579,7 +580,6 @@ def prune(testInstances,tree):
 
 	bestPrecision = deepcopy(tree.precision)
 	treeCopy= deepcopy(tree)
-	bestTree = deepcopy(tree)
 	improvedFlag=0
     
     
@@ -590,21 +590,22 @@ def prune(testInstances,tree):
 	        testNode = leafNode.parent
 	        testNode.leafOrNot = 1
 	        treeCopy = testTree(testInstances, tree)
-	        if treeCopy.precision < bestPrecision:
+	        if treeCopy.precision <= bestPrecision:
 	            #then reset that node to 0
 	            testNode.leafOrNot = 0
+	            treeCopy = deepcopy(tree)
+
 	        else:
 	            #set recursively that node and all nodes to leaf nodes
 	            setLeaf(testNode, tree.leafNodes)
-	            bestTree = deepcopy(treeCopy)
-	            treeCopy= deepcopy(tree)
 	            bestPrecision= treeCopy.precision
 	            improvedFlag = 1
-	            return [improvedFlag, bestTree]
+	            return [improvedFlag, treeCopy]
 	     
-	tree = bestTree
 	print 'improvedFlag = ',improvedFlag,' down to ',bestPrecision,' (',tree.precision,')'
 	print 'leaf nodes: ',len(tree.leafNodes),' out of ',len(tree.nodes),'nodes'
+	
+	tree.precision = bestPrecision
 
 	return [improvedFlag,tree]
 
