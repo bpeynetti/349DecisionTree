@@ -4,6 +4,7 @@ def validate(tree):
 	#first we need a prediction in each of the leafs in the tree
 
 	#read attributes from validation file
+
 	# if not(sys.argv==5):
 	# 	print "Please input 5 arguments (script, trainFile, testFile, validationFile, verbose)"
 	# else:

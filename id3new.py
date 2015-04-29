@@ -568,7 +568,9 @@ def ID3Stuff(trainFile,testFile):
 	file.close()
 
 	newTree = testTree(instances,tree)
-	newTree = prune(instances,newTree)
+	continuePrune = 1
+	while continuePrune == 1:
+		continuePrune = prune(instances, newTree)
 	return newTree
 
 # precision = []
@@ -603,4 +605,44 @@ def ID3Stuff(trainFile,testFile):
 # plt.show()
 ID3Stuff(trainFile,testfile)
 
+def prune(testInstances,tree):
 
+
+    bestPrecision = deepcopy(tree.precision)
+    treeCopy= deepcopy(tree)
+    bestTree = deepcopy(tree)
+    improvedFlag=0
+    
+    
+    for leafNode in tree.leafNodes:
+        #if the parent is not a leaf
+        if leafNode.parent not in treeCopy.leafNodes:
+            #perform a new test with that one set as a leaf
+            testNode = leafNode.parent
+            testNode.leafOrNot = 1
+            treeCopy = testTree(testInstances, treeCopy)
+            if treeCopy.precision < bestPrecision:
+                #then reset that node to 0
+                testNode.leafOrNot = 0
+            else:
+                #set recursively that node and all nodes to leaf nodes
+                setLeaf(testNode, treeCopy.leafNodes)
+                bestTree = deepcopy(treeCopy)
+                treeCopy= deepcopy(tree)
+                bestPrecision= treeCopy.precision
+                improvedFlag = 1
+         
+     tree = bestTree
+     print 'improvedFlag = ',improvedFlag,' down to ',precisionCopy
+     return improvedFlag
+
+    def setLeaf(someNode, leaves):
+
+    someNode.leafOrNot = 1
+    if someNode not in leaves:
+        leaves.append(someNode)
+    for child in someNode.children:
+        setLeaf(child,leaves)
+        
+    return 
+    
