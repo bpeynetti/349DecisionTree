@@ -585,7 +585,7 @@ def prune(testInstances,tree):
     
 	for leafNode in tree.leafNodes:
 	    #if the parent is not a leaf
-	    if leafNode.parent not in tree.leafNodes:
+	    if leafNode.parent.leafOrNot == 0:
 	        #perform a new test with that one set as a leaf
 	        testNode = leafNode.parent
 	        testNode.leafOrNot = 1
