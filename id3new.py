@@ -36,36 +36,6 @@ trainFile = sys.argv[1]
 testfile = sys.argv[2]
 INSTANCE_LIMIT = attempts
 
-
-def prune(testInstances,tree):
-
-	#we get a tree as input parameter
-	precision = []
-	bestPrecision = deepcopy(tree.precision)
-	precision.append(bestPrecision)
-	bestNodes = deepcopy(tree.nodes)
-	bestTree = tree
-	#now do the following:
-	for node in bestTree.nodes:
-		if node not in bestTree.leafNodes:
-			#set as a leaf
-			node.leafOrNot = 1
-			#now check the new accuracy with this current tree
-			bestTree = testTree(testInstances,bestTree)
-			if bestTree.precision < bestPrecision:
-				#then reset that node to 0
-				node.leafOrNot = 0
-			else:
-				bestPrecision = bestTree.precision
-				bestTree.leafNodes.append(node)
-
-				precision.append(bestPrecision)
-				print 'found a better solution with accuracy: ',bestPrecision
-
-	plt.plot(precision)
-	plt.show()
-	return bestTree
-
 def getEntropy(instance_set,verbose):
 
 	#if continuous, need to split on something
@@ -603,7 +573,6 @@ def ID3Stuff(trainFile,testFile):
 # plt.grid(True)
 
 # plt.show()
-ID3Stuff(trainFile,testfile)
 
 def prune(testInstances,tree):
 
@@ -632,11 +601,11 @@ def prune(testInstances,tree):
                 bestPrecision= treeCopy.precision
                 improvedFlag = 1
          
-     tree = bestTree
-     print 'improvedFlag = ',improvedFlag,' down to ',precisionCopy
-     return improvedFlag
+    tree = bestTree
+    print 'improvedFlag = ',improvedFlag,' down to ',precisionCopy
+    return improvedFlag
 
-    def setLeaf(someNode, leaves):
+def setLeaf(someNode, leaves):
 
     someNode.leafOrNot = 1
     if someNode not in leaves:
@@ -646,3 +615,5 @@ def prune(testInstances,tree):
         
     return 
     
+
+ID3Stuff(trainFile,testfile)
