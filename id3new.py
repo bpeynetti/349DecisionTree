@@ -600,6 +600,7 @@ def prune(testInstances,tree):
 	            treeCopy= deepcopy(tree)
 	            bestPrecision= treeCopy.precision
 	            improvedFlag = 1
+	            return [improvedFlag, bestTree]
 	     
 	tree = bestTree
 	print 'improvedFlag = ',improvedFlag,' down to ',bestPrecision,' (',tree.precision,')'
