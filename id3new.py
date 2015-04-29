@@ -30,6 +30,7 @@ class TreeNode(object):
 		self.leafNodes = []
 		self.precision = 0.0
 		self.parent = None
+		self.searched = 0
 
 attempts= int(sys.argv[3])
 trainFile = sys.argv[1]
@@ -582,28 +583,36 @@ def prune(testInstances,tree):
 	treeCopy= deepcopy(tree)
 	improvedFlag=0
     
+	unsearchedCount=0
+	for leafNode in treeCopy.leafNodes:
+		if leafNode.searched == 1:
+			unsearchedCount=unsearchedCount+1
+	print "Number of node searched:",unsearchedCount
     
-	for leafNode in tree.leafNodes:
+	for leafNode in treeCopy.leafNodes:
 	    #if the parent is not a leaf
-	    if leafNode.parent.leafOrNot == 0:
+	    if leafNode.parent.leafOrNot == 0 and leafNode.parent.searched == 0:
 	        #perform a new test with that one set as a leaf
 	        testNode = leafNode.parent
 	        testNode.leafOrNot = 1
-	        treeCopy = testTree(testInstances, tree)
+	        treeCopy = testTree(testInstances, treeCopy)
+	        testNode.searched=1
+	        
 	        if treeCopy.precision <= bestPrecision:
 	            #then reset that node to 0
 	            testNode.leafOrNot = 0
-	            treeCopy = deepcopy(tree)
-
 	        else:
 	            #set recursively that node and all nodes to leaf nodes
-	            setLeaf(testNode, tree.leafNodes)
+	            setLeaf(testNode, treeCopy.leafNodes)
 	            bestPrecision= treeCopy.precision
 	            improvedFlag = 1
 	            return [improvedFlag, treeCopy]
+				
+				
 	     
 	print 'improvedFlag = ',improvedFlag,' down to ',bestPrecision,' (',tree.precision,')'
 	print 'leaf nodes: ',len(tree.leafNodes),' out of ',len(tree.nodes),'nodes'
+
 	
 	tree.precision = bestPrecision
 
@@ -612,6 +621,7 @@ def prune(testInstances,tree):
 def setLeaf(someNode, leaves):
 
     someNode.leafOrNot = 1
+    someNode.searched = 1
     if someNode not in leaves:
         leaves.append(someNode)
     for child in someNode.children:
