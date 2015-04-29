@@ -36,7 +36,34 @@ testfile = sys.argv[2]
 INSTANCE_LIMIT = attempts
 
 
+def prune(testInstances,tree):
 
+	#we get a tree as input parameter
+	precision = []
+	bestPrecision = deepcopy(tree.precision)
+	precision.append(bestPrecision)
+	bestNodes = deepcopy(tree.nodes)
+	bestTree = tree
+	#now do the following:
+	for node in bestTree.nodes:
+		if node not in bestTree.leafNodes:
+			#set as a leaf
+			node.leafOrNot = 1
+			#now check the new accuracy with this current tree
+			bestTree = testTree(testInstances,bestTree)
+			if bestTree.precision < bestPrecision:
+				#then reset that node to 0
+				node.leafOrNot = 0
+			else:
+				bestPrecision = bestTree.precision
+				bestTree.leafNodes.append(node)
+
+				precision.append(bestPrecision)
+				print 'found a better solution with accuracy: ',bestPrecision
+
+	plt.plot(precision)
+	plt.show()
+	return bestTree
 
 def getEntropy(instance_set,verbose):
 
@@ -426,8 +453,8 @@ def testTree(testInstances,ID3Tree):
 	for n in ID3Tree.leafNodes:
 		totalPositive += n.prediction
 
-	print 'in total ',totalPositive,' positive leaf nodes out of ',len(ID3Tree.leafNodes),
-	print float(totalPositive)/len(ID3Tree.leafNodes)
+	print 'leaf nodes: ',len(ID3Tree.leafNodes),' out of ',len(ID3Tree.nodes),'nodes'
+	# print float(totalPositive)/len(ID3Tree.leafNodes)
 
 	return ID3Tree
 
@@ -538,7 +565,9 @@ def ID3Stuff(trainFile,testFile):
 	print "Done loading data, now testing the testing set ..."
 	file.close()
 
-	return testTree(instances,tree)
+	newTree = testTree(instances,tree)
+	newTree = prune(instances,newTree)
+	return newTree
 
 # precision = []
 # treeSize = []
@@ -570,5 +599,6 @@ def ID3Stuff(trainFile,testFile):
 # plt.grid(True)
 
 # plt.show()
-
 ID3Stuff(trainFile,testfile)
+
+
