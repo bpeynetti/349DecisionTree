@@ -29,6 +29,7 @@ class TreeNode(object):
 		self.nodes =[]
 		self.leafNodes = []
 		self.precision = 0.0
+		self.parent = None
 
 attempts= int(sys.argv[3])
 trainFile = sys.argv[1]
@@ -163,7 +164,7 @@ def infoGain(instances,typeAttr,attrIndex,verbose):
 	return totalGain
 
 
-def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recursive,splitAttribute,splitValue):
+def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recursive,splitAttribute,splitValue,parent):
 
 	#print recursive
 	recursive +=1
@@ -182,7 +183,8 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 	current_node.children = []
 	current_node.leafOrNot = 0
 	current_node.prediction = None
-	current_node.probability = 0;
+	current_node.probability = 0
+	current_node.parent = parent
 
 	current_node.splitValue = splitValue
 
@@ -350,9 +352,9 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 
 
 		if typeIsNominal==1:
-			newNode = ID3Recursive(tree,split_instances[key],newAttributes,typeAttribute,attrNum,recursive,bestattr,key)
+			newNode = ID3Recursive(tree,split_instances[key],newAttributes,typeAttribute,attrNum,recursive,bestattr,key,current_node)
 		else:
-			newNode = ID3Recursive(tree,split_instances[key],newAttributes,typeAttribute,attrNum,recursive,bestattr,average)
+			newNode = ID3Recursive(tree,split_instances[key],newAttributes,typeAttribute,attrNum,recursive,bestattr,average,current_node)
 		current_node.children.append(newNode)
 
 	current_node.splitAttribute = bestattr
@@ -375,7 +377,7 @@ def CreateTree(instances,Attribute_dict,attributes,typeAttribute,numberAttribute
 	tree.leafNodes = []
 
 	rootNode = TreeNode()
-	rootNode = ID3Recursive(tree,instances,attributes,typeAttribute,attrNum,0,None,None)
+	rootNode = ID3Recursive(tree,instances,attributes,typeAttribute,attrNum,0,None,None,None)
 
 	tree.root = rootNode
 
