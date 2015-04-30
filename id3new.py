@@ -2,6 +2,7 @@ import sys
 import math
 from copy import deepcopy
 import  matplotlib.pyplot as plt
+import random
 
 
 class ID3Tree(object):
@@ -32,9 +33,7 @@ class TreeNode(object):
 		self.parent = None
 		self.searched = 0
 
-attempts= int(sys.argv[3])
-trainFile = sys.argv[1]
-testfile = sys.argv[2]
+attempts= int(sys.argv[4])
 INSTANCE_LIMIT = attempts
 
 def getEntropy(instance_set,verbose):
@@ -156,7 +155,7 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 	current_node.prediction = None
 	current_node.probability = 0
 	current_node.parent = parent
-	current_node.splitAttributeType = None
+
 	current_node.splitValue = splitValue
 
 	positive = 0
@@ -176,12 +175,12 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 		current_node.probability = float(1) - float(current_node.probability)
 
 
-#	if current_node.probability>=0.9:
-#		current_node.leafOrNot = 1
-#		tree.leafNodes.append(current_node)
-#		tree.nodes.append(current_node)
+	if current_node.probability>=0.9:
+		current_node.leafOrNot = 1
+		tree.leafNodes.append(current_node)
+		tree.nodes.append(current_node)
 	#	print tabs,'leaf node, prediction: ',current_node.prediction
-#		return current_node
+		return current_node
 
 
 	if (len(instancesLeft)<=INSTANCE_LIMIT) or (len(attrNum)<=1) :
@@ -299,7 +298,6 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 				split_instances['greater'].append(instance)
 
 		possibilities = ['less_eq','greater']
-	current_node.splitAttributeType = typeAttribute[attrNum[bestattr]]
 
 	#figure out the number 
 	index = int(attrNum[bestattr])
@@ -330,6 +328,7 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 		current_node.children.append(newNode)
 
 	current_node.splitAttribute = bestattr
+
 
 	tree.nodes.append(current_node)
 	return current_node	
@@ -431,7 +430,7 @@ def testTree(testInstances,ID3Tree):
 	return ID3Tree
 
 
-def ID3Stuff(trainFile,testFile,pruning):
+def ID3Stuff(trainFile,testFile,pruning,validateOrNot,alternative_training_data):
 
 	#read attributes
 	# if not(sys.argv==5):
@@ -460,10 +459,16 @@ def ID3Stuff(trainFile,testFile,pruning):
 	typeAttribute = lines_array[1]
 
 	#now capture examples for all attributes
-	instances = lines_array[2:] 
+	if alternative_training_data==None:
+		instances = lines_array[2:] 
+	else:
+		instances = alternative_training_data
+		
+		
 	print "Number of instances: ",len(instances)
 	print "Number of attributes: ",len(instances[1])
 
+	
 	print "Fixing to numbers if needed..."
 
 	for instance in instances:
@@ -491,6 +496,10 @@ def ID3Stuff(trainFile,testFile,pruning):
 	file.close()
 
 	tree = CreateTree(instances,Attribute_dict,attributes,typeAttribute,numberAttributes,attrNum)
+	
+	###################################################################################################
+	if validateOrNot==0:
+		return tree
 
 	print " CREATED TREE - TESTING..."
 
@@ -518,19 +527,30 @@ def ID3Stuff(trainFile,testFile,pruning):
 	typeAttribute = lines_array[1]
 
 	positive = 0.0
+	testAverages = {}
+	l=0
+	for attr in attributes:
+#		print "average for : ",attr,
+		testAverages[attr] = getAvg(instances,l)
+		if typeAttribute[l]==' nominal':
+			testAverages[attr] = int(round(testAverages[attr]))
+#		print averages[attr]
+		l+=1
+	
+	print "Fixing to numbers if needed..."
+
+	positive = 0.0
+	positive = 0.0
 	for instance in instances:
 		i=0
-		for attr in instance:
-			if typeAttribute[i]==' numeric':
-				if attr=="?":
-					attr=-1
-				attr = float(attr)
-			if typeAttribute[i]==' nominal':
-				if attr=='?':
-					attr=0
+		for attr in instance[:-1]:
+			if attr=='?':
+				attr = testAverages[attributes[i]]
 			i+=1
+
 		if instance[-1]=='1':
 			positive+=1
+
 
 
 	print 'percentage of 1: ',float(positive)/float(len(instances))
@@ -575,6 +595,18 @@ def ID3Stuff(trainFile,testFile,pruning):
 
 # plt.show()
 
+def getAvg(instances,index):
+	
+	sum = 0
+	length = 0
+	for instance in instances:
+		if instance[index] != '?':
+			sum += float(instance[index])
+			length+=1
+	
+	return float(sum) / float(length)
+		
+		
 def prune(testInstances,tree):
 
 	print 'initial precision: ',tree.precision,'with ',len(tree.leafNodes),' leaf nodes out of ',len(tree.nodes)
@@ -635,40 +667,119 @@ def PrintTree(tree):
 	
 def printRecursive(node,recursionLevel):
 	
-	if not (node.parent==None):
-		if node.parent.splitAttributeType == ' nominal' or node.parent.splitAttributeType == 'nominal':
-			extraInfo1 = ''
-			extraInfo2 = ''
-		else:
-			extraInfo1 = ' less than or equal '
-			extraInfo2 = ' greater than '
 	recursionLevel = recursionLevel+1
 	tabs = '\t'*recursionLevel
 	if node.leafOrNot==1:
-		if node == node.parent.children[0]:
-			print tabs,node.splitAttributeType, ' Attribute : ',node.parent.splitAttribute,' value: ',extraInfo1,node.splitValue,' LEAF NODE: Prediction: ',node.prediction
-		else:
-			print tabs,node.splitAttributeType, ' Attribute : ',node.parent.splitAttribute,' value: ',extraInfo2,node.splitValue,' LEAF NODE: Prediction: ',node.prediction
+		print tabs,'Attribute : ',node.parent.splitAttribute,' value: ',node.splitValue,' LEAF NODE: Prediction: ',node.prediction
 		return
 	
 	else:
 		if node.parent==None:
 			print 'Root Node, split on : ',node.splitAttribute
 		else:
-			if node == node.parent.children[0]:
-				print tabs,node.splitAttributeType,' Attribute: ',node.parent.splitAttribute,' value: ',extraInfo1,node.splitValue,' . Split on ',node.splitAttribute
-			else:
-				print tabs,node.splitAttributeType,' Attribute: ',node.parent.splitAttribute,' value: ',extraInfo2,node.splitValue,'. Split on ',node.splitAttribute
+			print tabs,'Attribute: ',node.parent.splitAttribute,' value: ',node.splitValue,' Move down to ',node.splitAttribute
 
 	for kid in node.children:
 		printRecursive(kid,recursionLevel)
 		
 	return
 
-tree = ID3Stuff(trainFile,testfile,0)
+def getData(train_file,size_portion):
+	file = open(train_file,'r')
+	lines_array = []
+	print "Reading file..."
+	for line in file:
+		lines_array.append((line.strip()).split(','))
 
-PrintTree(tree)
+	#first line has the attribute names
+	attributes = lines_array[0]
+	attributes = attributes[0:-1]
+	attrNum = {}
 
-prunedTree = ID3Stuff(trainFile,testfile,1)
+	#keep a record of in what position everything is
+	k=0
+	for attr in attributes:
+		attrNum[attr]=k
+		k+=1
 
-PrintTree(prunedTree)
+	numberAttributes = len(attributes)-1
+	#second line has the type of attribute 
+	typeAttribute = lines_array[1]
+
+	#now capture examples for all attributes
+	instances = lines_array[2:] 
+	
+	print 'getting it all together and requested size is: ',len(instances),' and we ask for ',size_portion
+
+	for instance in instances:
+		if instance[-1]=='?':
+			flag=0
+			for i in instances:
+				if (instance[:-1]==i[:-1]) and (i[-1] != '?'):
+					instance[-1]=i[-1]
+					flag=1
+				break
+			if flag==0:
+				instance[-1]='0'
+	file.close()
+	
+	
+	newInstances = []
+	#now select randomly from the data set
+#	for i in range(size_portion):
+	#	print 'instances: ',len(instances)
+#		chosen_index = random.randrange(1,len(instances))
+#		temp = instances[chosen_index]
+#		while temp in newInstances:
+#			chosen_index = random.randrange(len(instances))
+#			temp = instances[chosen_index]
+			
+#		newInstances.append(temp)
+		
+	return instances[1:size_portion]
+			
+def PerformTest(tree,testFile,ratio):
+	print 'nothing yet'
+	
+########################### MAIN FUNCTION HERE
+
+
+model = int(sys.argv[5])
+test_file = sys.argv[3]
+validation_file = sys.argv[2]
+train_file = sys.argv[1]
+
+pruning = sys.argv[6]
+
+if model==1:
+	#perform a simple tree and print
+	tree = ID3Stuff(train_file,validation_file,0,0,None)
+if model==2:
+	#perform a tree and test on validation set with/without pruning
+	tree = ID3Stuff(train_file,validation_file,0,1,None)
+	PrintTree(tree)
+	prunedTree = ID3Stuff(train_file,validation_file,1,1,None)
+	PrintTree(prunedTree)
+	
+	print 'Accuracy before: ',tree.precision,' vs accuracy after pruning: ',prunedTree.prediction
+if model==3:
+	#perform a test and print out on other file
+	tree = ID3Stuff(train_file,validation_file,pruning,1,None)
+	PerformTest(tree,test_file)
+if model==4:
+	#show different validation sets for a different number of training size (1/10 each until 1)
+	precision = []
+	for i in range(1,11):
+		num_samples = (49982*i)/10
+		newTrainingData = getData(train_file,num_samples)
+		tree = ID3Stuff(train_file,validation_file,0,1,newTrainingData)
+		precision.append(tree.precision)
+		
+
+		
+	#plot this
+	plt.plot(precision)
+	plt.show()
+	
+	
+	
