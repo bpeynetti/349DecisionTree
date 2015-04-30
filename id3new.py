@@ -3,6 +3,7 @@ import math
 from copy import deepcopy
 import  matplotlib.pyplot as plt
 import random
+import csv
 
 
 class ID3Tree(object):
@@ -685,6 +686,8 @@ def printRecursive(node,recursionLevel):
 	return
 
 def getData(train_file,size_portion):
+	
+	
 	file = open(train_file,'r')
 	lines_array = []
 	print "Reading file..."
@@ -738,10 +741,110 @@ def getData(train_file,size_portion):
 		
 	return instances[1:size_portion]
 			
-def PerformTest(tree,testFile,ratio):
-	print 'nothing yet'
+def PerformTest(tree,testFile):
 	
+	print " CREATING TEST FILE OUTPUT "
+	file = open(testFile,'r')
+	lines_array = []
+	print "Reading file..."
+	for line in file:
+		lines_array.append((line.strip()).split(','))
+
+	#first line has the attribute names
+	attributes = lines_array[0]
+	attributes = attributes[0:-1]
+	attrNum = {}
+	instances = lines_array[2:] 
+
+	#keep a record of in what position everything is
+	k=0
+	for attr in attributes:
+		attrNum[attr]=k
+		k+=1
+
+	numberAttributes = len(attributes)-1
+	#second line has the type of attribute 
+	typeAttribute = lines_array[1]
+
+	positive = 0.0
+	testAverages = {}
+	l=0
+	for attr in attributes:
+#		print "average for : ",attr,
+		testAverages[attr] = getAvg(instances,l)
+		if typeAttribute[l]==' nominal':
+			testAverages[attr] = int(round(testAverages[attr]))
+#		print averages[attr]
+		l+=1
+	
+	print "Fixing Unknowns..."
+
+	positive = 0.0
+	for instance in instances:
+		i=0
+		for attr in instance[:-1]:
+			if attr=='?':
+				attr = testAverages[attributes[i]]
+			i+=1
+
+		if instance[-1]=='1':
+			positive+=1
+
+	print "Done loading data, now predicting the unknown test set....."
+	file.close()
+	
+	out = csv.writer(open("output.csv", "w"), delimiter=',', quoting=csv.QUOTE_ALL)
+	out.writerow(attributes)
+	out.writerow(lines_array[1])
+	
+	instances = instances[1:]
+	for testCase in instances:
+		prediction = predictor(testCase,tree.root,tree.attrNum,tree.attrType)
+		#print prediction
+		testCase[-1] = prediction
+		out.writerow(testCase)
+	
+
+	
+	
+
+def predictor (testCase , Node ,attrDict,attrTypes):
+
+
+	if Node.leafOrNot==1:
+		if not testCase[-1]=='?':
+			if int(testCase[-1])==int(Node.prediction):
+				return 1
+			else:
+				return 0
+		else:
+			return 0
+
+
+	splitIndex = attrDict[Node.splitAttribute]
+	
+	#otherwise, try to do the split by finding the correct child to split to 
+	if attrTypes[splitIndex]==' nominal':
+	#note that for numeric and nominal it's different
+		for child in Node.children:
+			if child.splitValue == testCase[splitIndex]:
+				return predictor(testCase,child,attrDict,attrTypes)
+	else:
+		if testCase[splitIndex]=='?':
+			return 0
+		if Node.children[0].splitValue > float(testCase[splitIndex]):
+			return predictor(testCase, Node.children[0],attrDict,attrTypes)
+		else:
+			return predictor(testCase, Node.children[1],attrDict,attrTypes)
+
+		#it's numeric. so work in less than/greater than
+
+	#in theory doesn't get here.. but in case the attribute doesn't exist:
+	return 0
+	
+
 ########################### MAIN FUNCTION HERE
+
 
 
 model = int(sys.argv[5])
