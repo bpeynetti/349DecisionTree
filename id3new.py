@@ -156,7 +156,7 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 	current_node.prediction = None
 	current_node.probability = 0
 	current_node.parent = parent
-
+	current_node.splitAttributeType = None
 	current_node.splitValue = splitValue
 
 	positive = 0
@@ -176,12 +176,12 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 		current_node.probability = float(1) - float(current_node.probability)
 
 
-	if current_node.probability>=0.9:
-		current_node.leafOrNot = 1
-		tree.leafNodes.append(current_node)
-		tree.nodes.append(current_node)
+#	if current_node.probability>=0.9:
+#		current_node.leafOrNot = 1
+#		tree.leafNodes.append(current_node)
+#		tree.nodes.append(current_node)
 	#	print tabs,'leaf node, prediction: ',current_node.prediction
-		return current_node
+#		return current_node
 
 
 	if (len(instancesLeft)<=INSTANCE_LIMIT) or (len(attrNum)<=1) :
@@ -299,6 +299,7 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 				split_instances['greater'].append(instance)
 
 		possibilities = ['less_eq','greater']
+	current_node.splitAttributeType = typeAttribute[attrNum[bestattr]]
 
 	#figure out the number 
 	index = int(attrNum[bestattr])
@@ -329,7 +330,6 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 		current_node.children.append(newNode)
 
 	current_node.splitAttribute = bestattr
-
 
 	tree.nodes.append(current_node)
 	return current_node	
@@ -431,7 +431,7 @@ def testTree(testInstances,ID3Tree):
 	return ID3Tree
 
 
-def ID3Stuff(trainFile,testFile):
+def ID3Stuff(trainFile,testFile,pruning):
 
 	#read attributes
 	# if not(sys.argv==5):
@@ -538,7 +538,7 @@ def ID3Stuff(trainFile,testFile):
 	file.close()
 
 	newTree = testTree(instances,tree)
-	continuePrune = 1
+	continuePrune = pruning
 	while continuePrune == 1:
 		[continuePrune,newTree] = prune(instances,newTree)
 		print 'Current precision after prune: ' ,newTree.precision
@@ -635,23 +635,40 @@ def PrintTree(tree):
 	
 def printRecursive(node,recursionLevel):
 	
+	if not (node.parent==None):
+		if node.parent.splitAttributeType == ' nominal' or node.parent.splitAttributeType == 'nominal':
+			extraInfo1 = ''
+			extraInfo2 = ''
+		else:
+			extraInfo1 = ' less than or equal '
+			extraInfo2 = ' greater than '
 	recursionLevel = recursionLevel+1
 	tabs = '\t'*recursionLevel
 	if node.leafOrNot==1:
-		print tabs,'LEAF NODE: Prediction: ',node.prediction
+		if node == node.parent.children[0]:
+			print tabs,node.splitAttributeType, ' Attribute : ',node.parent.splitAttribute,' value: ',extraInfo1,node.splitValue,' LEAF NODE: Prediction: ',node.prediction
+		else:
+			print tabs,node.splitAttributeType, ' Attribute : ',node.parent.splitAttribute,' value: ',extraInfo2,node.splitValue,' LEAF NODE: Prediction: ',node.prediction
 		return
 	
 	else:
 		if node.parent==None:
-			print 'Root Node, attribute: ',node.splitAttribute
+			print 'Root Node, split on : ',node.splitAttribute
 		else:
-			print tabs,'value: ',node.splitValue,' - attribute: ',node.splitAttribute
+			if node == node.parent.children[0]:
+				print tabs,node.splitAttributeType,' Attribute: ',node.parent.splitAttribute,' value: ',extraInfo1,node.splitValue,' . Split on ',node.splitAttribute
+			else:
+				print tabs,node.splitAttributeType,' Attribute: ',node.parent.splitAttribute,' value: ',extraInfo2,node.splitValue,'. Split on ',node.splitAttribute
 
 	for kid in node.children:
 		printRecursive(kid,recursionLevel)
 		
 	return
 
-tree = ID3Stuff(trainFile,testfile)
+tree = ID3Stuff(trainFile,testfile,0)
 
 PrintTree(tree)
+
+prunedTree = ID3Stuff(trainFile,testfile,1)
+
+PrintTree(prunedTree)
