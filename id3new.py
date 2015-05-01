@@ -727,19 +727,24 @@ def getData(train_file,size_portion):
 	file.close()
 	
 	
-	newInstances = []
-	#now select randomly from the data set
-#	for i in range(size_portion):
-	#	print 'instances: ',len(instances)
-#		chosen_index = random.randrange(1,len(instances))
-#		temp = instances[chosen_index]
-#		while temp in newInstances:
-#			chosen_index = random.randrange(len(instances))
-#			temp = instances[chosen_index]
+	# newInstances = []
+	# print 'now select randomly from the data set'
+	# for i in range(size_portion):
+	# #	print 'instances: ',len(instances)
+	# 	chosen_index = random.randrange(1,len(instances))
+	# 	temp = instances[chosen_index]
+	# 	if i%100==0:
+	# 		print 'added ',i,' out of ',size_portion
+	# 	while temp in newInstances:
+	# 		chosen_index = random.randrange(len(instances))
+	# 		temp = instances[chosen_index]
 			
-#		newInstances.append(temp)
+	# 	newInstances.append(temp)
 		
+	print 'shuffling and selecting instances'
+	random.shuffle(instances)
 	return instances[1:size_portion]
+	#return newInstances
 			
 def PerformTest(tree,testFile):
 	
@@ -799,14 +804,15 @@ def PerformTest(tree,testFile):
 	
 	instances = instances[1:]
 	for testCase in instances:
-		prediction = predictor(testCase,tree.root,tree.attrNum,tree.attrType)
+		prediction = valuePredictor(testCase,tree.root,tree.attrNum,tree.attrType)
 		#print prediction
 		testCase[-1] = prediction
 		out.writerow(testCase)
-	
 
-	
-	
+	return 
+
+	# done with function
+
 
 def predictor (testCase , Node ,attrDict,attrTypes):
 
@@ -843,6 +849,34 @@ def predictor (testCase , Node ,attrDict,attrTypes):
 	return 0
 	
 
+def valuePredictor (testCase , Node ,attrDict,attrTypes):
+
+
+	if Node.leafOrNot==1:
+		return Node.prediction
+
+
+	splitIndex = attrDict[Node.splitAttribute]
+	
+	#otherwise, try to do the split by finding the correct child to split to 
+	if attrTypes[splitIndex]==' nominal':
+	#note that for numeric and nominal it's different
+		for child in Node.children:
+			if child.splitValue == testCase[splitIndex]:
+				return predictor(testCase,child,attrDict,attrTypes)
+	else:
+		if testCase[splitIndex]=='?':
+			return 0
+		if Node.children[0].splitValue > float(testCase[splitIndex]):
+			return valuePredictor(testCase, Node.children[0],attrDict,attrTypes)
+		else:
+			return valuePredictor(testCase, Node.children[1],attrDict,attrTypes)
+
+		#it's numeric. so work in less than/greater than
+
+	#in theory doesn't get here.. but in case the attribute doesn't exist:
+	return 0
+
 ########################### MAIN FUNCTION HERE
 
 
@@ -852,7 +886,7 @@ test_file = sys.argv[3]
 validation_file = sys.argv[2]
 train_file = sys.argv[1]
 
-pruning = sys.argv[6]
+pruning = int(sys.argv[6])
 
 if model==1:
 	#perform a simple tree and print
@@ -864,24 +898,34 @@ if model==2:
 	prunedTree = ID3Stuff(train_file,validation_file,1,1,None)
 	PrintTree(prunedTree)
 	
-	print 'Accuracy before: ',tree.precision,' vs accuracy after pruning: ',prunedTree.prediction
+	print 'Accuracy before: ',tree.precision,' vs accuracy after pruning: ',prunedTree.precision
 if model==3:
 	#perform a test and print out on other file
 	tree = ID3Stuff(train_file,validation_file,pruning,1,None)
+	PrintTree(tree)
 	PerformTest(tree,test_file)
 if model==4:
 	#show different validation sets for a different number of training size (1/10 each until 1)
 	precision = []
-	for i in range(1,11):
-		num_samples = (49982*i)/10
+	x = []
+	for i in range(1,26):
+		num_samples = (49982*i)/25
 		newTrainingData = getData(train_file,num_samples)
-		tree = ID3Stuff(train_file,validation_file,0,1,newTrainingData)
+		tree = ID3Stuff(train_file,validation_file,pruning,1,newTrainingData)
 		precision.append(tree.precision)
-		
-
+		x.append(float(i)/float(25))
 		
 	#plot this
-	plt.plot(precision)
+	fig = plt.figure()
+	plt.plot(x,precision)
+	plt.xlabel('Percentage of data set used for tree')
+	plt.ylabel('Validation set accuracy')
+	if pruning:
+		titleString = 'Learning curve for pruned trees'
+	else:
+		titleString = 'Learning curve for unpruned trees'
+	fig.suptitle(titleString)
+	plt.grid(True)
 	plt.show()
 	
 	
