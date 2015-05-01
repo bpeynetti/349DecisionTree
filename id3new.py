@@ -890,7 +890,8 @@ pruning = int(sys.argv[6])
 
 if model==1:
 	#perform a simple tree and print
-	tree = ID3Stuff(train_file,validation_file,0,0,None)
+	tree = ID3Stuff(train_file,validation_file,pruning,0,None)
+	PrintTree(tree)
 if model==2:
 	#perform a tree and test on validation set with/without pruning
 	tree = ID3Stuff(train_file,validation_file,0,1,None)

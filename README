@@ -4,3 +4,30 @@ Implementatino of a decision tree algorithm.
 Binary output
 Numeric and nominal attributes
 Pruning-capable
+
+
+						Instructions
+=================================================================================================
+
+Requires 6 Command Line Argumetns
+
+python id3new.py <training file> <validation file> <test file> <Min Instances to split on> <Mode> <Prune>
+
+All arguments are required, even if you do not use the test or validation file.
+
+Mode can be 1,2,3 or 4. Operation:
+	1. Create the tree. Nothing is printed. Pruning is controled by argument 6
+	2. Create the tree and print it. Then prune the tree and print that. Argument 6 is ignored
+	3. Create the tree. Pruning is controlled by argument 6. Then test the data on the test file. The data is outputted to output.txt
+	4. Create many trees using different amounts of training data and checks their accurcy. Records the results in a graph. Pruning can be controlled by argument 6
+
+Example uses
+
+Print an unpruned tree
+python id3new.py btrain.csv bvalidate.csv btest.csv 1000 1 0
+
+Print an unpruned tree, then a pruned tree
+python id3new.py btrain.csv bvalidate.csv btest.csv 1000 2 0
+
+Create a new testfile called output.txt, with pruning
+python id3new.py btrain.csv bvalidate.csv btest.csv 1000 3 1
