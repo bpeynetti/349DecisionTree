@@ -175,16 +175,7 @@ def ID3Recursive(tree,instancesLeft,attributes_1,typeAttribute_1,attrNum_1,recur
 	if current_node.prediction == 0:
 		current_node.probability = float(1) - float(current_node.probability)
 
-
-	if current_node.probability>=0.9:
-		current_node.leafOrNot = 1
-		tree.leafNodes.append(current_node)
-		tree.nodes.append(current_node)
-	#	print tabs,'leaf node, prediction: ',current_node.prediction
-		return current_node
-
-
-	if (len(instancesLeft)<=INSTANCE_LIMIT) or (len(attrNum)<=1) :
+	if (len(instancesLeft)<=INSTANCE_LIMIT) or (len(attrNum)<=1) or (current_node.probability >= 0.9) :
 		current_node.leafOrNot = 1
 		tree.leafNodes.append(current_node)
 		tree.nodes.append(current_node)
